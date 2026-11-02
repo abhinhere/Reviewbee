@@ -14,6 +14,7 @@ export default function OrgReviewRedirect({ params }: { params: Params }) {
     const resolveOrg = async () => {
       if (isSupabaseConfigured && supabase) {
         try {
+          // 1. Try resolving organization by slug
           const { data: org } = await supabase
             .from('organizations')
             .select('id, slug')
@@ -32,12 +33,23 @@ export default function OrgReviewRedirect({ params }: { params: Params }) {
               return;
             }
           }
+
+          // 2. Resilient fallback: If organizations table RLS blocked anonymous select, resolve branch directly
+          const { data: publicBranches } = await supabase
+            .from('branches')
+            .select('slug, organization_id');
+
+          if (publicBranches && publicBranches.length > 0) {
+            const selectedBranch = publicBranches.find((b) => b.slug === 'main') || publicBranches[0];
+            router.replace(`/r/${orgSlug}/${selectedBranch.slug}`);
+            return;
+          }
         } catch (e) {
           console.warn('Error resolving org from Supabase:', e);
         }
       }
 
-      // Fallback
+      // Fallback to local mock if configured
       const org = mockDb.getOrganizationBySlug(orgSlug);
       if (org) {
         const branches = mockDb.getBranches(org.id);
