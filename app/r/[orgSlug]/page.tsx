@@ -2,7 +2,7 @@
 
 import React, { useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { mockDb } from '@/lib/db';
+import { mockDb, isSupabaseConfigured, supabase } from '@/lib/db';
 
 type Params = Promise<{ orgSlug: string }>;
 
@@ -11,19 +11,46 @@ export default function OrgReviewRedirect({ params }: { params: Params }) {
   const { orgSlug } = use(params);
 
   useEffect(() => {
-    // Resolve organization
-    const org = mockDb.getOrganizationBySlug(orgSlug);
-    if (org) {
-      const branches = mockDb.getBranches(org.id);
-      const mainBranch = branches.find((b) => b.slug === 'main') || branches[0];
-      if (mainBranch) {
-        router.replace(`/r/${orgSlug}/${mainBranch.slug}`);
-      } else {
-        router.replace('/');
+    const resolveOrg = async () => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: org } = await supabase
+            .from('organizations')
+            .select('id, slug')
+            .eq('slug', orgSlug)
+            .maybeSingle();
+
+          if (org) {
+            const { data: branches } = await supabase
+              .from('branches')
+              .select('slug')
+              .eq('organization_id', org.id);
+
+            if (branches && branches.length > 0) {
+              const mainBranch = branches.find((b) => b.slug === 'main') || branches[0];
+              router.replace(`/r/${orgSlug}/${mainBranch.slug}`);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Error resolving org from Supabase:', e);
+        }
       }
-    } else {
+
+      // Fallback
+      const org = mockDb.getOrganizationBySlug(orgSlug);
+      if (org) {
+        const branches = mockDb.getBranches(org.id);
+        const mainBranch = branches.find((b) => b.slug === 'main') || branches[0];
+        if (mainBranch) {
+          router.replace(`/r/${orgSlug}/${mainBranch.slug}`);
+          return;
+        }
+      }
       router.replace('/');
-    }
+    };
+
+    resolveOrg();
   }, [orgSlug, router]);
 
   return (

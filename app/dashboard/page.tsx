@@ -50,35 +50,22 @@ import {
 export default function DashboardPage() {
   const router = useRouter();
 
-  // Fast pre-hydration from local store so UI is immediate
-  const initialUser = typeof window !== 'undefined' ? mockDb.getCurrentUser() : null;
-  const initialOrg = initialUser ? (mockDb.getOrganization(initialUser.organization_id) || null) : null;
-  const initialBranches = initialUser ? mockDb.getBranches(initialUser.organization_id) : [];
-  const initialSettings = initialUser ? mockDb.getSettings(initialUser.organization_id) : null;
-  const initialQuestions = initialUser ? mockDb.getQuestions(initialUser.organization_id) : [];
-  const initialSubscription = initialUser ? mockDb.getSubscription(initialUser.organization_id) : null;
-
-  // --- States ---
+  // Clean initial state (no mock test pre-hydration)
   const [mounted, setMounted] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(initialUser);
-  const [organization, setOrganization] = useState<Organization | null>(initialOrg);
-  const [branches, setBranches] = useState<Branch[]>(initialBranches);
-  const [settings, setSettings] = useState<Settings | null>(initialSettings);
-  const [questions, setQuestions] = useState<ReviewQuestion[]>(initialQuestions);
-  const [subscription, setSubscription] = useState<Subscription | null>(initialSubscription);
-  const [loading, setLoading] = useState<boolean>(!initialUser);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [questions, setQuestions] = useState<ReviewQuestion[]>([]);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [activeTab, setActiveTab] = useState<'analytics' | 'branches' | 'questions' | 'ai' | 'posters' | 'billing'>('analytics');
 
   // Filters & Analytics State
   const [selectedBranchId, setSelectedBranchId] = useState<string>('all');
   const [selectedRange, setSelectedRange] = useState<number>(30);
-  const [analyticsData, setAnalyticsData] = useState<any>(() => {
-    if (initialOrg) {
-      return mockDb.getAnalyticsReport('all', initialOrg.id, 30);
-    }
-    return null;
-  });
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
 
   // Mobile menu control
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -199,6 +186,12 @@ export default function DashboardPage() {
         }
       }
 
+      // In real mode, require active authentication
+      if (isSupabaseConfigured && !supabaseUser) {
+        router.replace('/login');
+        return;
+      }
+
       let user: any = null;
 
       if (supabaseUser) {
@@ -290,7 +283,8 @@ export default function DashboardPage() {
       }
 
       if (!user) {
-        user = mockDb.loginWithGoogle();
+        router.replace('/login');
+        return;
       }
       setCurrentUser(user);
 
@@ -407,10 +401,7 @@ export default function DashboardPage() {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           loadWorkspace();
         } else if (event === 'SIGNED_OUT') {
-          const mockUser = mockDb.getCurrentUser();
-          if (!mockUser) {
-            router.push('/login');
-          }
+          router.replace('/login');
         }
       });
       return () => {
@@ -441,7 +432,10 @@ export default function DashboardPage() {
       }
     }
     mockDb.logout();
-    router.push('/login');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('reviewbee_db_store');
+    }
+    router.replace('/login');
   };
 
   if (!mounted || loading) {

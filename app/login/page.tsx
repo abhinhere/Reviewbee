@@ -8,19 +8,11 @@ import {
   ShieldCheck,
   CheckCircle2,
   ArrowRight,
-  User,
-  Building,
-  Mail,
-  Lock,
   ChevronDown,
   ChevronUp,
   AlertCircle,
-  HelpCircle,
-  QrCode,
-  Globe,
-  Settings as SettingsIcon,
 } from 'lucide-react';
-import { mockDb, isSupabaseConfigured, supabase } from '@/lib/db';
+import { isSupabaseConfigured, supabase } from '@/lib/db';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,19 +22,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Demo Google Account Preset
-  const [demoGoogleEmail, setDemoGoogleEmail] = useState('john.fit@gmail.com');
-  const [demoGoogleName, setDemoGoogleName] = useState('John Fit');
-  const [demoOrgName, setDemoOrgName] = useState('MadeFit Gym');
-  const [isEditingDemoAccount, setIsEditingDemoAccount] = useState(false);
-
-  // Email / Password Fallback Accordion
+  // Email / Password Form
   const [showEmailLogin, setShowEmailLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('owner@madefit.com');
-  const [password, setPassword] = useState('password123');
-  const [fullName, setFullName] = useState('John Fit');
-  const [orgName, setOrgName] = useState('MadeFit Gym');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [orgName, setOrgName] = useState('');
 
   // Read URL query parameters for errors and prefetch dashboard for instant navigation
   useEffect(() => {
@@ -55,19 +41,6 @@ export default function LoginPage() {
       }
     }
   }, [router]);
-
-  // --- 1-Click Demo / Quick Test Handler ---
-  const handleDemoLogin = () => {
-    setLoading(true);
-    setError(null);
-    setSuccessMessage('Authenticated! Entering ReviewBee Console...');
-    mockDb.loginWithGoogle({
-      email: demoGoogleEmail,
-      name: demoGoogleName,
-      organizationName: demoOrgName,
-    });
-    router.push('/dashboard');
-  };
 
   // --- Google Sign-In Handler ---
   const handleGoogleLogin = async () => {
@@ -90,11 +63,11 @@ export default function LoginPage() {
         if (oauthError) throw oauthError;
         // In Supabase mode, browser redirects automatically to Google OAuth page
       } else {
-        handleDemoLogin();
+        throw new Error('Supabase authentication is not configured in .env');
       }
     } catch (err: any) {
       console.error('Google login error:', err);
-      setError(err.message || 'Failed to authenticate with Google. You can use the Quick Test Login to explore.');
+      setError(err.message || 'Failed to authenticate with Google. Please try again.');
       setLoading(false);
     }
   };
@@ -104,6 +77,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       if (isSupabaseConfigured && supabase) {
@@ -120,7 +94,7 @@ export default function LoginPage() {
             },
           });
           if (se) throw se;
-          alert('Registration successful! Please check your email for confirmation.');
+          setSuccessMessage('Registration successful! Please check your email for confirmation or sign in.');
           setIsSignUp(false);
         } else {
           const { error: le } = await supabase.auth.signInWithPassword({
@@ -131,13 +105,7 @@ export default function LoginPage() {
           router.push('/dashboard');
         }
       } else {
-        // Local storage demo auth
-        if (isSignUp) {
-          mockDb.signup(email, fullName, orgName);
-        } else {
-          mockDb.login(email);
-        }
-        router.push('/dashboard');
+        throw new Error('Supabase authentication is not configured in .env');
       }
     } catch (err: any) {
       console.error(err);
@@ -239,78 +207,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Mode Indicator & Demo Details */}
-          {/* Demo Account Box & Mode Status */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl">
-            <div className="flex items-center justify-between mb-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-900">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Demo Preset Workspace
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsEditingDemoAccount(!isEditingDemoAccount)}
-                className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
-              >
-                {isEditingDemoAccount ? 'Done' : 'Change Preset'}
-              </button>
-            </div>
-
-            {isEditingDemoAccount ? (
-              <div className="space-y-2.5 pt-2 border-t border-blue-200/60 text-xs">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 block mb-0.5">Google Name</label>
-                  <input
-                    type="text"
-                    value={demoGoogleName}
-                    onChange={(e) => setDemoGoogleName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 block mb-0.5">Google Email</label>
-                  <input
-                    type="email"
-                    value={demoGoogleEmail}
-                    onChange={(e) => setDemoGoogleEmail(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 block mb-0.5">Business Name</label>
-                  <input
-                    type="text"
-                    value={demoOrgName}
-                    onChange={(e) => setDemoOrgName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-white border border-blue-200 flex items-center justify-center font-bold text-blue-700 text-sm shadow-sm">
-                    {demoGoogleName.charAt(0)}
-                  </div>
-                  <div className="text-xs">
-                    <p className="font-bold text-slate-900 leading-tight">{demoGoogleName}</p>
-                    <p className="text-slate-500 font-mono text-[11px]">{demoGoogleEmail}</p>
-                    <p className="text-blue-700 font-medium text-[11px]">Business: {demoOrgName}</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleDemoLogin}
-                  disabled={loading}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition shrink-0"
-                >
-                  1-Click Test
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* PRIMARY CALL TO ACTION: GOOGLE SIGN-IN BUTTON */}
           <div className="space-y-3">
             <button
@@ -386,7 +282,7 @@ export default function LoginPage() {
                         required
                         value={orgName}
                         onChange={(e) => setOrgName(e.target.value)}
-                        placeholder="e.g. MadeFit Gym"
+                        placeholder="e.g. My Business"
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs"
                       />
                     </div>
@@ -400,7 +296,7 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="owner@madefit.com"
+                    placeholder="name@business.com"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs"
                   />
                 </div>
@@ -438,16 +334,10 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Quick Demo Shortcut */}
+          {/* Footer note */}
           <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
             <span>ReviewBee v1.0 • Multi-tenant</span>
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              className="text-blue-600 font-bold hover:underline"
-            >
-              Quick Test Login →
-            </button>
+            <span>Secure Authentication</span>
           </div>
         </div>
       </div>

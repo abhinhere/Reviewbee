@@ -46,10 +46,10 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row gap-3 mt-8 w-full max-w-md justify-center">
           <Link
-            href="/r/madefit/main"
+            href="/login"
             className="px-6 py-4 bg-slate-900 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 hover:bg-black transition cursor-pointer text-sm"
           >
-            <span>Try Live Customer Flow</span>
+            <span>Get Started Now</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
           
