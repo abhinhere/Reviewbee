@@ -32,7 +32,9 @@ import {
   Zap,
   Wand2,
   Copy,
-  Check
+  Check,
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { generateAIdraft } from '@/lib/ai';
@@ -440,12 +442,12 @@ export default function DashboardPage() {
 
   if (!mounted || loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#090D16] min-h-screen text-slate-300">
-        <div className="relative flex items-center justify-center">
-          <div className="w-14 h-14 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin"></div>
-          <Sparkles className="w-6 h-6 text-violet-400 absolute animate-pulse" />
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 min-h-screen text-slate-600">
+        <div className="relative flex items-center justify-center mb-4">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <Star className="w-4 h-4 text-blue-600 absolute fill-blue-600" />
         </div>
-        <p className="mt-4 text-xs font-semibold text-slate-400 tracking-wider uppercase">Entering ReviewBee AI Console...</p>
+        <p className="text-xs font-medium text-slate-500">Loading ReviewBee workspace...</p>
       </div>
     );
   }
@@ -798,50 +800,45 @@ export default function DashboardPage() {
   return (
     <div className="flex-1 flex bg-slate-50 min-h-screen print:bg-white print:min-h-0">
       
-      {/* --- MINIMAL AI-POWERED SIDEBAR NAV --- */}
-      <aside className={`w-64 bg-[#0A0D14] text-slate-400 flex flex-col justify-between fixed md:sticky top-0 h-screen z-50 transition-all duration-200 border-r border-white/[0.06] ${
+      {/* --- STANDARD LIGHT SIDEBAR NAV --- */}
+      <aside className={`w-64 bg-white text-slate-600 flex flex-col justify-between fixed md:sticky top-0 h-screen z-50 transition-all duration-200 border-r border-slate-200 ${
         isMobileMenuOpen ? 'left-0' : '-left-64 md:left-0'
-      } print:hidden select-none`}>
+      } print:hidden select-none shadow-sm`}>
         
         <div className="flex flex-col flex-1 min-h-0">
           {/* Logo Brand Header */}
-          <div className="h-14 px-4 flex items-center justify-between border-b border-white/[0.06] shrink-0">
+          <div className="h-14 px-4 flex items-center justify-between border-b border-slate-200 shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-md bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
-                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
+                <Star className="w-4 h-4 fill-current text-blue-600" />
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-white text-sm tracking-tight">ReviewBee</span>
-                <span className="text-[10px] font-mono text-violet-400 bg-violet-400/10 px-1.5 py-0.5 rounded border border-violet-400/20 leading-none">
-                  ai
-                </span>
-              </div>
+              <span className="font-bold text-slate-900 text-base tracking-tight">ReviewBee</span>
             </div>
             {/* Close button for mobile menu */}
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
-              className="md:hidden text-slate-400 hover:text-white p-1"
+              className="md:hidden text-slate-400 hover:text-slate-700 p-1 rounded-md"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Minimal Workspace row */}
-          <div className="px-4 py-2.5 border-b border-white/[0.04] flex items-center justify-between shrink-0">
-            <span className="font-medium text-slate-300 truncate text-xs">{organization.name}</span>
-            <span className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              live
+          {/* Workspace row */}
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/60">
+            <span className="font-semibold text-slate-800 truncate text-xs">{organization?.name || 'My Business'}</span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Live
             </span>
           </div>
 
           {/* Clean Navigation */}
-          <nav className="p-2.5 space-y-1 flex-1 overflow-y-auto">
+          <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
             {[
               { id: 'analytics', label: 'Overview', icon: LayoutDashboard },
               { id: 'branches', label: 'Branches', icon: Building },
-              { id: 'questions', label: 'Question Builder', icon: Sliders },
-              { id: 'ai', label: 'AI Review Copilot', icon: Sparkles, isAi: true },
+              { id: 'questions', label: 'Survey Questions', icon: Sliders },
+              { id: 'ai', label: 'Review Settings', icon: FileText },
               { id: 'posters', label: 'QR Posters', icon: QrCode },
               { id: 'billing', label: 'Plan & Billing', icon: CreditCard },
             ].map((tab) => {
@@ -854,65 +851,58 @@ export default function DashboardPage() {
                     setActiveTab(tab.id as any);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-between transition-all cursor-pointer ${
+                  className={`w-full px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
                     isActive
-                      ? tab.isAi
-                        ? 'bg-violet-500/15 text-white border border-violet-500/30'
-                        : 'bg-white/[0.08] text-white border border-white/[0.08]'
-                      : tab.isAi
-                        ? 'text-slate-300 hover:text-white hover:bg-violet-500/10'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 shrink-0 ${tab.isAi ? 'text-violet-400' : ''}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
                     <span>{tab.label}</span>
                   </div>
-                  {tab.isAi && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400/80" />
-                  )}
                 </button>
               );
             })}
           </nav>
 
-          {/* Minimal AI Quick Test trigger */}
-          <div className="p-2.5 shrink-0">
+          {/* Review Draft Preview trigger */}
+          <div className="p-3 shrink-0">
             <button
               type="button"
-              id="btn-test-ai-review"
+              id="btn-preview-review"
               onClick={() => {
                 setShowAISimulator(true);
                 if (!simDraft) handleRunAISimulation();
               }}
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] hover:border-violet-500/30 text-slate-300 hover:text-white flex items-center justify-between transition cursor-pointer"
+              className="w-full px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 flex items-center justify-between transition cursor-pointer text-xs font-medium"
             >
               <div className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-                <span className="text-xs font-medium">Test AI Draft</span>
+                <FileText className="w-3.5 h-3.5 text-blue-600" />
+                <span className="font-semibold">Review Draft Preview</span>
               </div>
-              <span className="text-[10px] font-mono text-slate-500 capitalize">{settings?.ai_writing_tone || 'Friendly'}</span>
+              <span className="text-[10px] text-slate-400 capitalize">{settings?.ai_writing_tone || 'Friendly'}</span>
             </button>
           </div>
         </div>
 
-        {/* Minimal User Profile */}
-        <div className="h-14 px-4 border-t border-white/[0.06] flex items-center justify-between shrink-0 text-xs">
+        {/* User Profile */}
+        <div className="h-14 px-4 border-t border-slate-200 flex items-center justify-between shrink-0 text-xs bg-slate-50/50">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-medium text-[11px] shrink-0 border border-white/[0.06]">
+            <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-[11px] shrink-0 border border-blue-200">
               {currentUser?.full_name?.substring(0, 2).toUpperCase() || 'AD'}
             </div>
             <div className="truncate min-w-0">
-              <p className="font-medium text-slate-200 text-xs truncate leading-tight">{currentUser?.full_name}</p>
-              <p className="text-[10px] text-slate-500 font-mono truncate leading-tight">Admin</p>
+              <p className="font-semibold text-slate-800 text-xs truncate leading-tight">{currentUser?.full_name || 'Admin'}</p>
+              <p className="text-[10px] text-slate-400 truncate leading-tight">Business Admin</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
             title="Sign out"
-            className="text-slate-500 hover:text-slate-300 p-1.5 rounded hover:bg-white/[0.04] transition cursor-pointer"
+            className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200 transition cursor-pointer"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </aside>
@@ -921,19 +911,16 @@ export default function DashboardPage() {
       <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden print:min-h-0 print:overflow-x-visible">
         
         {/* MOBILE TOP BAR NAVIGATION */}
-        <header className="md:hidden bg-[#0A0D14] text-white h-14 px-4 flex items-center justify-between border-b border-white/[0.06] shrink-0 sticky top-0 z-40 print:hidden">
+        <header className="md:hidden bg-white text-slate-800 h-14 px-4 flex items-center justify-between border-b border-slate-200 shrink-0 sticky top-0 z-40 print:hidden">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
+              <Star className="w-4 h-4 fill-current text-blue-600" />
             </div>
-            <span className="font-semibold text-sm">ReviewBee</span>
-            <span className="text-[10px] font-mono text-violet-400 bg-violet-400/10 px-1.5 py-0.5 rounded border border-violet-400/20 leading-none">
-              ai
-            </span>
+            <span className="font-bold text-sm text-slate-900">ReviewBee</span>
           </div>
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
-            className="text-slate-400 hover:text-white p-1.5"
+            className="text-slate-600 hover:text-slate-900 p-1.5"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -982,7 +969,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: 'QR Scans', value: analyticsData.cards.scans, change: '+12%', desc: 'QR poster scans count', icon: QrCode, color: 'text-blue-600 bg-blue-50' },
-                  { label: 'Reviews Drafted', value: analyticsData.cards.reviewsGenerated, change: '+8%', desc: 'AI reviews created', icon: Sparkles, color: 'text-emerald-600 bg-emerald-50' },
+                  { label: 'Reviews Drafted', value: analyticsData.cards.reviewsGenerated, change: '+8%', desc: 'Customer review drafts', icon: MessageSquare, color: 'text-emerald-600 bg-emerald-50' },
                   { label: 'Visits Google', value: analyticsData.cards.googleVisits, change: '+15%', desc: 'Google URL click visits', icon: CheckCircle, color: 'text-amber-600 bg-amber-50' },
                   { label: 'Conversion Rate', value: `${analyticsData.cards.conversionRate}%`, change: '+3%', desc: 'Scans to Google redirects', icon: TrendingUp, color: 'text-rose-600 bg-rose-50' },
                 ].map((card, idx) => {
@@ -1261,7 +1248,7 @@ export default function DashboardPage() {
                   </select>
                   <button
                     onClick={() => loadPresetQuestions(selectedCategory)}
-                    className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-black transition cursor-pointer flex items-center gap-1"
+                    className="px-3.5 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
                   >
                     <FolderOpen className="w-3.5 h-3.5" /> Load preset
                   </button>
@@ -1470,14 +1457,14 @@ export default function DashboardPage() {
           {activeTab === 'ai' && (
             <div className="space-y-6 animate-fade-in print:hidden">
               <div className="border-b border-slate-200 pb-5">
-                <h1 className="text-2xl font-black text-slate-800 tracking-tight">AI Settings & Localization</h1>
-                <p className="text-slate-400 text-xs mt-0.5">Customize generative output tone rules, character length, and translation flags.</p>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Review Settings & Languages</h1>
+                <p className="text-slate-500 text-xs mt-0.5">Customize default review writing style, draft length, and customer languages.</p>
               </div>
 
               {/* Tone settings card */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm space-y-6">
                 <div>
-                  <h3 className="font-bold text-slate-800 text-sm mb-1">Writing Tone Settings</h3>
+                  <h3 className="font-bold text-slate-800 text-sm mb-1">Review Writing Style</h3>
                   <p className="text-slate-400 text-xs">Set the default vocabulary style for generated reviews.</p>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
@@ -1801,7 +1788,7 @@ export default function DashboardPage() {
                     Full Access Granted to Everyone
                   </h2>
                   <p className="text-slate-300 text-sm mt-3 leading-relaxed">
-                    All business workspaces operate with unrestricted enterprise privileges. You have unlimited branch locations, unlimited QR scan traffic, AI-assisted multi-lingual review drafts, and custom survey questionnaires without any paywalls or locked tiers.
+                    All business workspaces operate with unrestricted enterprise privileges. You have unlimited branch locations, unlimited QR scan traffic, Multi-lingual customer review drafts, and custom survey questionnaires without any paywalls or locked tiers.
                   </p>
                 </div>
               </div>
@@ -1828,9 +1815,9 @@ export default function DashboardPage() {
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold mb-3">
                       <Sparkles className="w-5 h-5" />
                     </div>
-                    <h3 className="font-extrabold text-slate-800 text-sm">AI Review Drafting</h3>
+                    <h3 className="font-extrabold text-slate-800 text-sm">Smart Review Drafting</h3>
                     <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                      AI generative assistance with customizable tone (Friendly, Professional, Luxury, Simple) and length rules.
+                      Automated review drafting with customizable tone (Friendly, Professional, Luxury, Simple) and length options.
                     </p>
                   </div>
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
@@ -1892,35 +1879,29 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* --- INTERACTIVE AI REVIEW SIMULATOR MODAL --- */}
+      {/* --- REVIEW DRAFT PREVIEW MODAL --- */}
       {showAISimulator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in print:hidden">
-          <div className="bg-[#0e1320] border border-violet-500/30 rounded-2xl w-full max-w-lg shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden relative">
-            
-            {/* Top decorative gradient bar */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in print:hidden">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg shadow-xl overflow-hidden relative text-slate-800">
             
             <div className="p-6">
               {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-500/40 flex items-center justify-center text-violet-300 shadow-sm shadow-violet-500/25">
-                    <BrainCircuit className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
+                    <FileText className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-white text-base flex items-center gap-2">
-                      ReviewBee Neural AI Sandbox
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                        Live Test
-                      </span>
+                    <h3 className="font-bold text-slate-900 text-base">
+                      Review Draft Preview
                     </h3>
-                    <p className="text-slate-400 text-xs">Simulate instant customer review drafts in real time.</p>
+                    <p className="text-slate-500 text-xs">Simulate how customer responses are formulated into a review draft.</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowAISimulator(false)}
-                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1930,7 +1911,7 @@ export default function DashboardPage() {
               <div className="space-y-4 mb-5">
                 {/* Star rating selector */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                     Customer Experience Rating
                   </label>
                   <div className="flex items-center gap-2">
@@ -1944,8 +1925,8 @@ export default function DashboardPage() {
                         }}
                         className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition cursor-pointer ${
                           simRating === stars
-                            ? 'bg-amber-400/20 border-amber-400 text-amber-300 shadow-sm'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                            ? 'bg-amber-50 border-amber-300 text-amber-700 shadow-sm'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
                         <Star className="w-3.5 h-3.5 fill-current" />
@@ -1958,8 +1939,8 @@ export default function DashboardPage() {
                 {/* Tone & Language Selector */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                      Writing Tone
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                      Writing Style
                     </label>
                     <select
                       value={simTone}
@@ -1967,7 +1948,7 @@ export default function DashboardPage() {
                         setSimTone(e.target.value);
                         handleRunAISimulation(simRating, e.target.value, simLang);
                       }}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-violet-500 cursor-pointer"
+                      className="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
                     >
                       <option value="friendly">Friendly (Warm & welcoming)</option>
                       <option value="professional">Professional (Direct & crisp)</option>
@@ -1977,7 +1958,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                       Language
                     </label>
                     <select
@@ -1986,7 +1967,7 @@ export default function DashboardPage() {
                         setSimLang(e.target.value);
                         handleRunAISimulation(simRating, simTone, e.target.value);
                       }}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-violet-500 cursor-pointer"
+                      className="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
                     >
                       <option value="en">English</option>
                       <option value="ml">Malayalam (മലയാളം)</option>
@@ -2000,40 +1981,40 @@ export default function DashboardPage() {
               {/* Output Preview Box */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-                    Generated AI Draft
+                  <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                    Review Draft Output
                   </span>
                   {isSimGenerating ? (
-                    <span className="text-[10px] text-violet-400 font-bold flex items-center gap-1 animate-pulse">
+                    <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1 animate-pulse">
                       <RefreshCw className="w-3 h-3 animate-spin" />
-                      Generating...
+                      Drafting...
                     </span>
                   ) : (
-                    <span className="text-[10px] text-emerald-400 font-bold">
-                      ✓ Ready for Google Review
+                    <span className="text-[11px] text-emerald-600 font-semibold">
+                      ✓ Ready for Google Reviews
                     </span>
                   )}
                 </div>
 
-                <div className="relative bg-slate-950 rounded-xl p-4 border border-violet-500/25 min-h-[90px] flex items-center shadow-inner">
-                  <p className="text-sm text-slate-200 leading-relaxed font-normal">
-                    {simDraft || "Click 'Regenerate' to produce an AI draft preview."}
+                <div className="relative bg-slate-50 rounded-xl p-4 border border-slate-200 min-h-[90px] flex items-center text-slate-800 text-xs sm:text-sm leading-relaxed">
+                  <p>
+                    {simDraft || "Click 'Regenerate' to preview a review draft."}
                   </p>
                 </div>
               </div>
 
               {/* Actions Footer */}
-              <div className="flex items-center justify-between gap-3 mt-5 pt-4 border-t border-slate-800/80">
+              <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
                     setActiveTab('ai');
                     setShowAISimulator(false);
                   }}
-                  className="text-xs font-semibold text-violet-400 hover:text-violet-300 underline underline-offset-4 cursor-pointer"
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 underline underline-offset-4 cursor-pointer"
                 >
-                  Tune Default AI Settings →
+                  Manage Review Settings →
                 </button>
 
                 <div className="flex items-center gap-2">
@@ -2041,7 +2022,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => handleRunAISimulation()}
                     disabled={isSimGenerating}
-                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                    className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isSimGenerating ? 'animate-spin' : ''}`} />
                     <span>Regenerate</span>
@@ -2056,11 +2037,11 @@ export default function DashboardPage() {
                         setTimeout(() => setSimCopied(false), 2000);
                       }
                     }}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 hover:from-violet-500 to-indigo-600 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-[0_2px_12px_rgba(124,58,237,0.35)] transition cursor-pointer active:scale-98"
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                   >
                     {simCopied ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-300" />
+                        <Check className="w-3.5 h-3.5" />
                         <span>Copied!</span>
                       </>
                     ) : (

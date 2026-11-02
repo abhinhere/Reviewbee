@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, ArrowRight, ArrowLeft, Languages, ClipboardCheck, Sparkles, RefreshCw, Check } from 'lucide-react';
+import { Star, ArrowRight, ArrowLeft, Languages, ClipboardCheck, FileText, RefreshCw, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { mockDb, isSupabaseConfigured, supabase, Organization, Branch, Settings, ReviewQuestion } from '@/lib/db';
@@ -176,7 +176,7 @@ export default function CustomerReviewPage({ params }: { params: Params }) {
       <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-4">
         <div className="relative flex items-center justify-center">
           <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-          <Sparkles className="w-5 h-5 text-blue-600 absolute animate-pulse" />
+          <Star className="w-5 h-5 text-blue-600 fill-current absolute" />
         </div>
         <p className="mt-4 text-sm text-slate-500 font-medium animate-pulse">Loading ReviewBee Flow...</p>
       </div>
@@ -216,12 +216,12 @@ export default function CustomerReviewPage({ params }: { params: Params }) {
       langSubtitle: "Choose the language in which you prefer to write your review",
       prevBtn: "Back",
       nextBtn: "Continue",
-      submitBtn: "Generate AI Review",
+      submitBtn: "Create Review Draft",
       ratingTitle: "Overall Rating",
       ratingSubtitle: "Select your review score to begin",
-      generating: "AI ReviewBee is drafting your review...",
+      generating: "Preparing your review draft...",
       generatingSubtitle: "Drafting in natural words based on your inputs",
-      previewTitle: "Your AI review is ready!",
+      previewTitle: "Your review draft is ready!",
       previewSubtitle: "Review and edit the text. Tapping continue will copy it and open our Google Review page.",
       copyBtn: "Copy & Open Google Review",
       copiedText: "Review copied to clipboard! Redirecting you now...",
@@ -240,12 +240,12 @@ export default function CustomerReviewPage({ params }: { params: Params }) {
       langSubtitle: "നിങ്ങളുടെ അഭിപ്രായം ഏത് ഭാഷയിൽ എഴുതാനാണ് ആഗ്രഹിക്കുന്നത് എന്ന് തിരഞ്ഞെടുക്കുക",
       prevBtn: "പുറകോട്ട്",
       nextBtn: "തുടരുക",
-      submitBtn: "AI റിവ്യൂ തയ്യാറാക്കുക",
+      submitBtn: "റിവ്യൂ തയ്യാറാക്കുക",
       ratingTitle: "മൊത്തത്തിലുള്ള റേറ്റിംഗ്",
       ratingSubtitle: "തുടങ്ങുന്നതിനായി റേറ്റിംഗ് തിരഞ്ഞെടുക്കുക",
-      generating: "AI റിവ്യൂ തയ്യാറാക്കുന്നു...",
+      generating: "റിവ്യൂ തയ്യാറാക്കുന്നു...",
       generatingSubtitle: "നിങ്ങളുടെ ഉത്തരങ്ങളുടെ അടിസ്ഥാനത്തിൽ ലളിതമായ വാക്കുകളിൽ എഴുതുന്നു",
-      previewTitle: "നിങ്ങളുടെ AI റിവ്യൂ തയ്യാറാണ്!",
+      previewTitle: "നിങ്ങളുടെ റിവ്യൂ തയ്യാറാണ്!",
       previewSubtitle: "നിങ്ങൾക്ക് ആവശ്യമായ മാറ്റങ്ങൾ വരുത്താം. താഴെ കാണുന്ന ബട്ടണിൽ ക്ലിക്ക് ചെയ്താൽ റിവ്യൂ കോപ്പി ചെയ്യപ്പെടുകയും ഗൂഗിൾ റിവ്യൂ പേജ് തുറക്കുകയും ചെയ്യും.",
       copyBtn: "കോപ്പി ചെയ്ത് ഗൂഗിൾ തുറക്കുക",
       copiedText: "റിവ്യൂ കോപ്പി ചെയ്തു! ഗൂഗിൾ പേജിലേക്ക് പോകുന്നു...",
@@ -264,12 +264,12 @@ export default function CustomerReviewPage({ params }: { params: Params }) {
       langSubtitle: "वह भाषा चुनें जिसमें आप अपनी समीक्षा लिखना पसंद करते हैं",
       prevBtn: "पीछे",
       nextBtn: "आगे बढ़ें",
-      submitBtn: "AI समीक्षा उत्पन्न करें",
+      submitBtn: "समीक्षा ड्राफ्ट तैयार करें",
       ratingTitle: "कुल मिलाकर रेटिंग",
       ratingSubtitle: "समीक्षा शुरू करने के लिए अपना स्कोर चुनें",
-      generating: "AI आपकी समीक्षा का मसौदा तैयार कर रहा है...",
+      generating: "आपकी समीक्षा तैयार की जा रही है...",
       generatingSubtitle: "आपके उत्तरों के आधार पर प्राकृतिक शब्दों में लिखा जा रहा है",
-      previewTitle: "आपकी AI समीक्षा तैयार है!",
+      previewTitle: "आपकी समीक्षा तैयार है!",
       previewSubtitle: "समीक्षा को संपादित करें। आगे बढ़ने पर यह कॉपी हो जाएगा और हमारा गूगल समीक्षा पेज खुल जाएगा।",
       copyBtn: "कॉपी करें और गूगल समीक्षा खोलें",
       copiedText: "समीक्षा कॉपी हो गई! गूगल पेज पर जा रहे हैं...",
@@ -288,12 +288,12 @@ export default function CustomerReviewPage({ params }: { params: Params }) {
       langSubtitle: "اختر اللغة التي تفضل كتابة التقييم بها",
       prevBtn: "رجوع",
       nextBtn: "استمرار",
-      submitBtn: "توليد التقييم بالذكاء الاصطناعي",
+      submitBtn: "إعداد مسودة التقييم",
       ratingTitle: "التقييم العام",
       ratingSubtitle: "اختر مستوى رضاك للبدء",
-      generating: "يجري إعداد تقييمك الذكي حالياً...",
+      generating: "يجري إعداد مسودة تقييمك حالياً...",
       generatingSubtitle: "صياغة التقييم بكلمات طبيعية بناءً على إجاباتك",
-      previewTitle: "تقييمك الذكي جاهز الآن!",
+      previewTitle: "مسودة تقييمك جاهزة الآن!",
       previewSubtitle: "راجع النص وقم بتعديله إن أردت. الضغط على استمرار سيقوم بنسخ النص وفتح صفحة تقييمات جوجل مباشرة.",
       copyBtn: "نسخ وفتح صفحة التقييمات",
       copiedText: "تم نسخ النص بنجاح! يتم الآن توجيهك إلى جوجل...",
@@ -884,14 +884,14 @@ export default function CustomerReviewPage({ params }: { params: Params }) {
             </motion.div>
           )}
 
-          {/* STEP 4: AI GENERATING LOADER */}
+          {/* STEP 4: DRAFT GENERATING LOADER */}
           {step === 4 && (
             <motion.div
               key="generating"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center flex flex-col items-center justify-center py-8"
+              className="text-center flex flex-col items-center justify-center py-10"
             >
               <div className="relative w-16 h-16 flex items-center justify-center mb-6">
                 <div className="absolute inset-0 border-4 border-slate-100 rounded-full" />
@@ -899,26 +899,15 @@ export default function CustomerReviewPage({ params }: { params: Params }) {
                   className="absolute inset-0 border-4 border-t-transparent rounded-full animate-spin" 
                   style={{ borderTopColor: primaryColor }}
                 />
-                <Sparkles 
-                  className="w-6 h-6 animate-pulse" 
-                  style={{ color: primaryColor }}
+                <FileText 
+                  className="w-6 h-6 text-slate-400" 
                 />
               </div>
 
-              <h2 className="text-xl font-black text-slate-800">{currentUiText.generating}</h2>
-              <p className="text-slate-400 text-xs mt-2 max-w-xs leading-relaxed">
+              <h2 className="text-xl font-bold text-slate-800">{currentUiText.generating}</h2>
+              <p className="text-slate-500 text-xs mt-2 max-w-xs leading-relaxed">
                 {currentUiText.generatingSubtitle}
               </p>
-
-              {/* Animated status tags */}
-              <div className="flex gap-2 mt-6">
-                <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-500 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" /> Analyzing answers
-                </span>
-                <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-500 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" /> Creating review text
-                </span>
-              </div>
             </motion.div>
           )}
 
@@ -932,7 +921,7 @@ export default function CustomerReviewPage({ params }: { params: Params }) {
               className="flex flex-col"
             >
               <span className="px-3 py-1 bg-green-50 border border-green-200/50 rounded-full text-[10px] font-bold text-green-600 flex items-center gap-1 self-start mb-2">
-                <Sparkles className="w-3 h-3 fill-current" /> AI Generated Draft
+                <Check className="w-3 h-3 text-green-600" /> Review Draft
               </span>
 
               <h3 className="text-lg font-black text-slate-800">
