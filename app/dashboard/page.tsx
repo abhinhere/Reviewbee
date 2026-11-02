@@ -9,7 +9,6 @@ import {
   Building,
   Sliders,
   QrCode,
-  CreditCard,
   LogOut,
   Plus,
   Trash2,
@@ -34,7 +33,9 @@ import {
   Copy,
   Check,
   FileText,
-  MessageSquare
+  MessageSquare,
+  Download,
+  ExternalLink
 } from 'lucide-react';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { generateAIdraft } from '@/lib/ai';
@@ -62,7 +63,7 @@ export default function DashboardPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'branches' | 'questions' | 'ai' | 'posters' | 'billing'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'branches' | 'questions' | 'ai' | 'posters'>('analytics');
 
   // Filters & Analytics State
   const [selectedBranchId, setSelectedBranchId] = useState<string>('all');
@@ -136,7 +137,13 @@ export default function DashboardPage() {
   const [newQuestionOptionsRaw, setNewQuestionOptionsRaw] = useState({ en: '', ml: '', hi: '', ar: '' });
   const [newQuestionRequired, setNewQuestionRequired] = useState(false);
 
-  // Poster Config State
+    // Poster / Display Stand Config State
+  const [selectedPosterBranchId, setSelectedPosterBranchId] = useState<string>('');
+  const [posterDestination, setPosterDestination] = useState<'assistant' | 'direct'>('assistant');
+  const [posterPaperSize, setPosterPaperSize] = useState<'stand' | 'a5' | 'a4'>('stand');
+  const [showBusinessFooter, setShowBusinessFooter] = useState<boolean>(false);
+  const [copiedPosterLink, setCopiedPosterLink] = useState(false);
+  const [isDownloadingStand, setIsDownloadingStand] = useState(false);
   const [posterLayout, setPosterLayout] = useState<'stand' | 'poster' | 'counter' | 'wall'>('stand');
   const [posterSize, setPosterSize] = useState<'A4' | 'A5'>('A5');
   const [posterCtaText, setPosterCtaText] = useState('Loved your experience?');
@@ -790,12 +797,6 @@ export default function DashboardPage() {
     mockDb.saveQuestions(organization.id, updated);
   };
 
-  // --- Subscriptions changes ---
-  const handleUpgradePlan = (plan: Subscription['plan_name']) => {
-    mockDb.updateSubscription(organization.id, plan);
-    loadWorkspace();
-    alert(`Success: Switched organization subscription plan to '${plan.toUpperCase()}'! Feature limits updated.`);
-  };
 
   return (
     <div className="flex-1 flex bg-slate-50 min-h-screen print:bg-white print:min-h-0">
@@ -839,8 +840,7 @@ export default function DashboardPage() {
               { id: 'branches', label: 'Branches', icon: Building },
               { id: 'questions', label: 'Survey Questions', icon: Sliders },
               { id: 'ai', label: 'Review Settings', icon: FileText },
-              { id: 'posters', label: 'QR Posters', icon: QrCode },
-              { id: 'billing', label: 'Plan & Billing', icon: CreditCard },
+              { id: 'posters', label: 'QR Display Stand', icon: QrCode },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1566,315 +1566,534 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* TAB 5: QR POSTER GENERATOR */}
-          {activeTab === 'posters' && (
-            <div className="space-y-6 animate-fade-in print:p-0">
-              
-              {/* Heading Panel info */}
-              <div className="flex items-center justify-between border-b border-slate-200 pb-5 print:hidden">
-                <div>
-                  <h1 className="text-2xl font-black text-slate-800 tracking-tight">QR Poster Designer</h1>
-                  <p className="text-slate-400 text-xs mt-0.5">Generate highly-styled, printable table stands and wall posters.</p>
-                </div>
-                <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-blue-700 transition cursor-pointer"
-                >
-                  <Printer className="w-4 h-4" /> Print Poster
-                </button>
-              </div>
+          {/* TAB 5: GOOGLE REVIEW STAND / QR CODE */}
+          {activeTab === 'posters' && (() => {
+            const currentBranch = branches.find((b) => b.id === selectedPosterBranchId) || branches[0];
+            const origin = typeof window !== 'undefined' ? window.location.origin : 'https://reviewbee.app';
+            const assistantUrl = organization ? `${origin}/r/${organization.slug}/${currentBranch?.slug || 'main'}` : '';
+            const directUrl = currentBranch?.google_review_url
+              ? currentBranch.google_review_url
+              : currentBranch?.google_place_id
+                ? `https://search.google.com/local/writereview?placeid=${currentBranch.google_place_id}`
+                : assistantUrl;
+            
+            const targetUrl = posterDestination === 'direct' ? directUrl : assistantUrl;
+            const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=480x480&margin=0&color=000000&bgcolor=FFFFFF&data=${encodeURIComponent(targetUrl)}`;
 
-              {/* Customizer Designer panel split layout */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start print:grid-cols-1 print:gap-0">
-                
-                {/* Customize controllers */}
-                <div className="md:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm space-y-4 print:hidden">
-                  <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-2">Poster Design Tools</h3>
+            const handleCopyLink = () => {
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(targetUrl);
+                setCopiedPosterLink(true);
+                setTimeout(() => setCopiedPosterLink(false), 2000);
+              }
+            };
+
+            const handleDownloadQrOnly = () => {
+              const link = document.createElement('a');
+              link.href = `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&margin=1&color=000000&bgcolor=FFFFFF&data=${encodeURIComponent(targetUrl)}`;
+              link.target = '_blank';
+              link.download = `google-review-qr-${currentBranch?.slug || 'code'}.png`;
+              link.click();
+            };
+
+            const handleDownloadStandPng = async () => {
+              setIsDownloadingStand(true);
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1000;
+                canvas.height = 1400;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+
+                // White background
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Google 4-Color Logo
+                const googleSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>`;
+                const gBlob = new Blob([googleSvg], { type: 'image/svg+xml;charset=utf-8' });
+                const gUrl = URL.createObjectURL(gBlob);
+                const gImg = new Image();
+                await new Promise((res) => {
+                  gImg.onload = () => {
+                    ctx.drawImage(gImg, 390, 110, 220, 220);
+                    URL.revokeObjectURL(gUrl);
+                    res(null);
+                  };
+                  gImg.onerror = () => res(null);
+                  gImg.src = gUrl;
+                });
+
+                // Text: review us
+                ctx.fillStyle = '#3c4043';
+                ctx.font = '400 52px system-ui, -apple-system, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('review us', 500, 395);
+
+                // Text: on Google
+                ctx.fillStyle = '#202124';
+                ctx.font = '700 86px system-ui, -apple-system, sans-serif';
+                ctx.fillText('on Google', 500, 490);
+
+                // 5 Gold Stars (#FBBC04)
+                const starCount = 5;
+                const starOuterRadius = 26;
+                const starInnerRadius = 13;
+                const starSpacing = 68;
+                const startX = 500 - ((starCount - 1) * starSpacing) / 2;
+                const starY = 550;
+
+                const drawStar = (cx: number, cy: number) => {
+                  let rot = (Math.PI / 2) * 3;
+                  const step = Math.PI / 5;
+                  ctx.beginPath();
+                  ctx.moveTo(cx, cy - starOuterRadius);
+                  for (let i = 0; i < 5; i++) {
+                    ctx.lineTo(cx + Math.cos(rot) * starOuterRadius, cy + Math.sin(rot) * starOuterRadius);
+                    rot += step;
+                    ctx.lineTo(cx + Math.cos(rot) * starInnerRadius, cy + Math.sin(rot) * starInnerRadius);
+                    rot += step;
+                  }
+                  ctx.closePath();
+                  ctx.fillStyle = '#FBBC04';
+                  ctx.fill();
+                };
+
+                for (let i = 0; i < starCount; i++) {
+                  drawStar(startX + i * starSpacing, starY);
+                }
+
+                // QR Code
+                const qrImg = new Image();
+                qrImg.crossOrigin = 'anonymous';
+                await new Promise((res) => {
+                  qrImg.onload = () => {
+                    ctx.drawImage(qrImg, 275, 630, 450, 450);
+                    res(null);
+                  };
+                  qrImg.onerror = () => res(null);
+                  qrImg.src = qrImageSrc;
+                });
+
+                // Optional business footer
+                if (showBusinessFooter && currentBranch) {
+                  ctx.fillStyle = '#70757a';
+                  ctx.font = '600 28px system-ui, -apple-system, sans-serif';
+                  ctx.fillText(currentBranch.name, 500, 1180);
+                }
+
+                const dataUrl = canvas.toDataURL('image/png');
+                const downloadLink = document.createElement('a');
+                downloadLink.href = dataUrl;
+                downloadLink.download = `Google-Review-Stand-${currentBranch?.slug || 'stand'}.png`;
+                downloadLink.click();
+              } catch (err) {
+                console.error('Error generating stand PNG:', err);
+              } finally {
+                setIsDownloadingStand(false);
+              }
+            };
+
+            return (
+              <div className="space-y-6 animate-fade-in print:p-0">
+                {/* Header Toolbar */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 print:hidden">
+                  <div>
+                    <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                      <QrCode className="w-6 h-6 text-blue-600" />
+                      Google Review Display Stand
+                    </h1>
+                    <p className="text-slate-500 text-xs mt-1">
+                      Official Google tabletop stand design ready for acrylic display and high-res printing.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={handleDownloadStandPng}
+                      disabled={isDownloadingStand}
+                      className="px-3.5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm disabled:opacity-50"
+                    >
+                      <Download className="w-4 h-4 text-slate-500" />
+                      {isDownloadingStand ? 'Generating PNG...' : 'Download Image'}
+                    </button>
+                    <button
+                      onClick={() => window.print()}
+                      className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Print Stand
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2-Column Layout: Controls & Mockup */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start print:block print:gap-0">
                   
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Layout Template</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { id: 'stand', label: 'Table Stand' },
-                        { id: 'poster', label: 'Reception Poster' },
-                        { id: 'counter', label: 'Counter Sticker' },
-                        { id: 'wall', label: 'Wall Banner' },
-                      ].map((t) => (
-                        <button
-                          key={t.id}
-                          onClick={() => setPosterLayout(t.id as any)}
-                          className={`py-2 px-3 rounded-lg border text-xs font-bold transition cursor-pointer text-center ${
-                            posterLayout === t.id
-                              ? 'border-blue-600 bg-blue-50/20 text-blue-600'
-                              : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                          }`}
+                  {/* Left Column: Stand Configuration */}
+                  <div className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5 print:hidden">
+                    <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-3 flex items-center justify-between">
+                      <span>Display Stand Settings</span>
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Official Google Style
+                      </span>
+                    </h3>
+
+                    {/* Branch Selection */}
+                    {branches.length > 1 && (
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                          Select Location / Branch
+                        </label>
+                        <select
+                          value={selectedPosterBranchId || currentBranch?.id}
+                          onChange={(e) => setSelectedPosterBranchId(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Poster Size</label>
-                    <div className="flex gap-2">
-                      {['A4', 'A5'].map((sz) => (
-                        <button
-                          key={sz}
-                          onClick={() => setPosterSize(sz as any)}
-                          className={`flex-1 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer text-center ${
-                            posterSize === sz
-                              ? 'border-blue-600 bg-blue-50/20 text-blue-600'
-                              : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          {sz}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Brand Theme Color</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={posterColor}
-                        onChange={(e) => setPosterColor(e.target.value)}
-                        className="w-8 h-8 rounded border border-slate-200 cursor-pointer"
-                      />
-                      <span className="text-xs font-bold text-slate-500 uppercase">{posterColor}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Headline (Call To Action)</label>
-                    <input
-                      type="text"
-                      value={posterCtaText}
-                      onChange={(e) => setPosterCtaText(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Subheadline Instruction</label>
-                    <input
-                      type="text"
-                      value={posterSubCtaText}
-                      onChange={(e) => setPosterSubCtaText(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Poster Live Canvas Preview Mockup */}
-                <div className="md:col-span-3 flex justify-center print:w-full">
-                  <div 
-                    id="printable-poster-area"
-                    className="w-full max-w-[360px] bg-white rounded-3xl border border-slate-300 shadow-xl p-8 text-center flex flex-col justify-between items-center relative overflow-hidden transition-all duration-300 aspect-[1/1.414]"
-                    style={{ borderColor: posterColor, borderWidth: '8px' }}
-                  >
-                    {/* Top logo indicator */}
-                    <div className="flex flex-col items-center">
-                      <div 
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white text-xl shadow-md mb-2"
-                        style={{ backgroundColor: posterColor }}
-                      >
-                        {organization.name.substring(0, 2).toUpperCase()}
+                          {branches.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.name} ({b.slug})
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                      <h2 className="font-extrabold text-slate-800 text-lg tracking-tight mt-1">{organization.name}</h2>
+                    )}
+
+                    {/* QR Code Routing Destination */}
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                        Scan Destination
+                      </label>
+                      <div className="space-y-2">
+                        <label
+                          onClick={() => setPosterDestination('assistant')}
+                          className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${
+                            posterDestination === 'assistant'
+                              ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500'
+                              : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="posterDestination"
+                            checked={posterDestination === 'assistant'}
+                            onChange={() => setPosterDestination('assistant')}
+                            className="mt-0.5 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div>
+                            <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                              Reviewbee Smart Review Flow
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 bg-blue-100 text-blue-700 rounded">Recommended</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                              Helps customers draft authentic 5-star Google reviews and filters unhappy customers to private feedback.
+                            </p>
+                          </div>
+                        </label>
+
+                        <label
+                          onClick={() => setPosterDestination('direct')}
+                          className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${
+                            posterDestination === 'direct'
+                              ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500'
+                              : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="posterDestination"
+                            checked={posterDestination === 'direct'}
+                            onChange={() => setPosterDestination('direct')}
+                            className="mt-0.5 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div>
+                            <div className="text-xs font-bold text-slate-800">
+                              Direct Google Review Box
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                              Opens Google Maps write-review dialog directly on customer's phone without the interactive assistant.
+                            </p>
+                          </div>
+                        </label>
+                      </div>
                     </div>
 
-                    {/* Central CTA section */}
-                    <div className="my-auto py-6 flex flex-col items-center w-full">
-                      <div className="flex gap-1 mb-3">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} className="w-6 h-6 text-amber-400 fill-current" />
+                    {/* Paper & Stand Format */}
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                        Print Size Format
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'stand', label: 'Acrylic Stand', sub: '4" × 6"' },
+                          { id: 'a5', label: 'A5 Card', sub: '14.8 × 21 cm' },
+                          { id: 'a4', label: 'A4 Poster', sub: '21 × 29.7 cm' },
+                        ].map((sz) => (
+                          <button
+                            key={sz.id}
+                            type="button"
+                            onClick={() => setPosterPaperSize(sz.id as any)}
+                            className={`py-2 px-2 rounded-xl border text-center transition cursor-pointer ${
+                              posterPaperSize === sz.id
+                                ? 'border-blue-600 bg-blue-50/30 text-blue-600 font-bold'
+                                : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="text-xs">{sz.label}</div>
+                            <div className="text-[10px] opacity-60 font-normal">{sz.sub}</div>
+                          </button>
                         ))}
                       </div>
+                    </div>
 
-                      <h1 className="text-xl font-black text-slate-900 tracking-tight leading-snug px-2">
-                        ⭐ {posterCtaText}
-                      </h1>
-                      <p className="text-slate-400 text-xs mt-2 px-6">
-                        {posterSubCtaText}
-                      </p>
+                    {/* Optional footer label toggle */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-slate-700">Show Location / Branch Name</div>
+                        <div className="text-[11px] text-slate-400">Display location subtitle at the stand bottom</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={showBusinessFooter}
+                        onChange={(e) => setShowBusinessFooter(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </div>
 
-                      {/* Live generated QR code mockup */}
-                      <div className="mt-6 p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-inner relative group flex items-center justify-center w-40 h-40">
-                        {/* QR Code image source or SVG */}
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=${posterColor.replace('#', '')}&data=${encodeURIComponent(
-                            typeof window !== 'undefined'
-                              ? `${window.location.origin}/r/${organization.slug}/main`
-                              : `https://reviewbee.app/r/${organization.slug}/main`
-                          )}`}
-                          alt="Review QR Code"
-                          className="w-32 h-32 object-contain"
-                        />
+                    {/* Review URL Preview & Copy */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                        <span>QR Code Target URL</span>
+                        <a
+                          href={targetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline flex items-center gap-0.5"
+                        >
+                          Test Link <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                      <div className="text-xs text-slate-700 font-mono bg-white p-2 rounded border border-slate-200 truncate select-all">
+                        {targetUrl}
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleCopyLink}
+                          className="flex-1 py-1.5 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                        >
+                          {copiedPosterLink ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              <span className="text-emerald-700">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Copy Link</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDownloadQrOnly}
+                          className="py-1.5 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                          title="Download high-resolution black & white QR code PNG"
+                        >
+                          <Download className="w-3.5 h-3.5 text-slate-500" />
+                          <span>QR Only</span>
+                        </button>
                       </div>
                     </div>
 
-                    {/* Footer instructions */}
-                    <div className="w-full flex flex-col items-center">
-                      <span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-extrabold text-slate-500 uppercase tracking-widest border border-slate-200/50">
-                        Scan with your smartphone camera
-                      </span>
-                      <p className="text-[10px] text-slate-400 font-bold tracking-wider mt-3">Powered by ReviewBee.app</p>
+                    {/* Pro tip advice */}
+                    <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl text-[11px] text-blue-800 leading-relaxed">
+                      <span className="font-bold">Tabletop Stand Recommendation:</span> Print on standard 250–300 GSM white cardstock and slip into a vertical clear or white L-shaped acrylic tabletop holder.
+                    </div>
+                  </div>
+
+                  {/* Right Column: Exact Match Google Review Acrylic Stand Mockup */}
+                  <div className="lg:col-span-7 flex flex-col items-center justify-center p-6 sm:p-12 bg-slate-100/60 rounded-3xl border border-slate-200/70 print:p-0 print:bg-white print:border-none">
+                    
+                    {/* Stand Mockup Assembly */}
+                    <div className="relative flex flex-col items-center w-full max-w-[340px] sm:max-w-[380px]">
+                      
+                      {/* Stand Face (Card) */}
+                      <div
+                        id="printable-poster-area"
+                        className="w-full bg-white rounded-t-[32px] rounded-b-xl shadow-2xl border border-slate-200/80 px-8 pt-10 pb-9 text-center flex flex-col items-center relative overflow-hidden select-none"
+                        style={{
+                          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+                        }}
+                      >
+                        {/* Official Google 4-Color "G" SVG */}
+                        <div className="flex justify-center mb-4">
+                          <svg className="w-20 h-20 sm:w-24 sm:h-24 drop-shadow-sm" viewBox="0 0 24 24">
+                            <path
+                              fill="#4285F4"
+                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                            />
+                          </svg>
+                        </div>
+
+                        {/* Exact Typography: "review us" and "on Google" */}
+                        <div className="flex flex-col items-center">
+                          <p className="text-[#3c4043] text-xl sm:text-2xl font-normal lowercase tracking-normal leading-tight font-sans">
+                            review us
+                          </p>
+                          <h2 className="text-[#202124] text-3xl sm:text-4xl font-bold tracking-tight leading-tight mt-0.5 font-sans">
+                            on Google
+                          </h2>
+                        </div>
+
+                        {/* 5 Solid Gold Stars (#FBBC04) */}
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-3 sm:mt-4 mb-5 sm:mb-6">
+                          {[1, 2, 3, 4, 5].map((starIndex) => (
+                            <svg
+                              key={starIndex}
+                              className="w-7 h-7 sm:w-8 sm:h-8"
+                              viewBox="0 0 24 24"
+                              fill="#FBBC04"
+                            >
+                              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                            </svg>
+                          ))}
+                        </div>
+
+                        {/* High-Resolution Black & White QR Code */}
+                        <div className="bg-white p-2 rounded-xl flex items-center justify-center shadow-xs">
+                          <img
+                            src={qrImageSrc}
+                            alt="Google Review QR Code"
+                            className="w-44 h-44 sm:w-52 sm:h-52 object-contain"
+                            style={{ imageRendering: 'pixelated' }}
+                          />
+                        </div>
+
+                        {/* Optional subtle footer */}
+                        {showBusinessFooter && currentBranch && (
+                          <div className="mt-4 pt-3 border-t border-slate-100 w-full text-center">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                              {currentBranch.name}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Acrylic Stand L-Base Lip (Mockup Presentation) */}
+                      <div
+                        className="w-full h-8 bg-gradient-to-b from-slate-200 via-white to-slate-200 rounded-b-2xl shadow-xl border-x border-b border-slate-300 relative -mt-0.5 print:hidden"
+                        style={{
+                          transform: 'perspective(350px) rotateX(32deg)',
+                          transformOrigin: 'top center',
+                          boxShadow: '0 16px 28px -6px rgba(0, 0, 0, 0.28)',
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-70" />
+                      </div>
+
+                      {/* Stand Drop Shadow */}
+                      <div className="w-[85%] h-4 bg-slate-400/25 blur-md rounded-full mt-2 print:hidden" />
+                    </div>
+
+                    {/* Quick Action Pills Under Stand */}
+                    <div className="flex flex-wrap items-center justify-center gap-3 mt-8 print:hidden">
+                      <button
+                        onClick={() => window.print()}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                      >
+                        <Printer className="w-4 h-4" /> Print Display Stand
+                      </button>
+                      <button
+                        onClick={handleDownloadStandPng}
+                        disabled={isDownloadingStand}
+                        className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                      >
+                        <Download className="w-4 h-4 text-slate-500" />
+                        {isDownloadingStand ? 'Generating...' : 'Download Stand (PNG)'}
+                      </button>
+                      <button
+                        onClick={handleCopyLink}
+                        className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                      >
+                        {copiedPosterLink ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-emerald-700">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Copy Link</span>
+                          </>
+                        )}
+                      </button>
                     </div>
 
                   </div>
+
                 </div>
 
-              </div>
-
-              {/* Print layout custom CSS injection */}
-              <style dangerouslySetInnerHTML={{
-                __html: `
-                @media print {
-                  body {
-                    background: white !important;
-                    color: black !important;
+                {/* Print Layout CSS Injection */}
+                <style dangerouslySetInnerHTML={{
+                  __html: `
+                  @media print {
+                    @page {
+                      margin: 1.5cm;
+                      size: auto;
+                    }
+                    body {
+                      background: #ffffff !important;
+                      color: #000000 !important;
+                      -webkit-print-color-adjust: exact !important;
+                      print-color-adjust: exact !important;
+                    }
+                    header, aside, main > div > div:not(.space-y-6),
+                    .print\\:hidden,
+                    button, nav, .print\\:hidden * {
+                      display: none !important;
+                    }
+                    main {
+                      padding: 0 !important;
+                      margin: 0 !important;
+                    }
+                    #printable-poster-area {
+                      box-shadow: none !important;
+                      border: 1px dashed #cbd5e1 !important;
+                      border-radius: 28px !important;
+                      max-width: 440px !important;
+                      width: 100% !important;
+                      margin: 1cm auto !important;
+                      padding: 2.5rem 2rem !important;
+                      page-break-inside: avoid !important;
+                      background: #ffffff !important;
+                    }
+                    #printable-poster-area img {
+                      width: 220px !important;
+                      height: 220px !important;
+                    }
                   }
-                  header, aside, main > div > div:not(#printable-poster-area), 
-                  .print\\:hidden, #printable-poster-area ~ * {
-                    display: none !important;
-                  }
-                  main {
-                    padding: 0 !important;
-                    margin: 0 !important;
-                  }
-                  #printable-poster-area {
-                    border: 8px solid ${posterColor} !important;
-                    max-width: 100% !important;
-                    width: 100vw !important;
-                    height: 100vh !important;
-                    box-shadow: none !important;
-                    border-radius: 0 !important;
-                    margin: 0 !important;
-                    position: absolute !important;
-                    top: 0 !important;
-                    left: 0 !important;
-                  }
-                }
-              `}} />
+                `}} />
 
-            </div>
-          )}
-
-          {/* TAB 6: FULL ACCESS PLAN OVERVIEW */}
-          {activeTab === 'billing' && (
-            <div className="space-y-6 animate-fade-in print:hidden">
-              <div className="border-b border-slate-200 pb-5">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    Full Access Active
-                  </span>
-                  <span className="text-xs text-slate-400 font-medium">• No Plan Limits</span>
-                </div>
-                <h1 className="text-2xl font-black text-slate-800 tracking-tight">Platform Access & Capabilities</h1>
-                <p className="text-slate-400 text-xs mt-0.5">Your organization has full, unrestricted access to all ReviewBee features with zero branch caps or usage limits.</p>
               </div>
-
-              {/* Hero Status Banner */}
-              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white p-6 md:p-8 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
-                <div className="relative z-10 max-w-2xl">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold mb-4">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    <span>ReviewBee Enterprise Suite • 100% Unlocked</span>
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-                    Full Access Granted to Everyone
-                  </h2>
-                  <p className="text-slate-300 text-sm mt-3 leading-relaxed">
-                    All business workspaces operate with unrestricted enterprise privileges. You have unlimited branch locations, unlimited QR scan traffic, Multi-lingual customer review drafts, and custom survey questionnaires without any paywalls or locked tiers.
-                  </p>
-                </div>
-              </div>
-
-              {/* Unlocked Features Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold mb-3">
-                      <Building className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-extrabold text-slate-800 text-sm">Unlimited Branches</h3>
-                    <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                      Create and manage unlimited business locations, outlets, or gym floors with individual Google Place IDs.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
-                    <CheckCircle className="w-3.5 h-3.5" /> No caps / Unlimited
-                  </div>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold mb-3">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-extrabold text-slate-800 text-sm">Smart Review Drafting</h3>
-                    <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                      Automated review drafting with customizable tone (Friendly, Professional, Luxury, Simple) and length options.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
-                    <CheckCircle className="w-3.5 h-3.5" /> Fully customizable
-                  </div>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold mb-3">
-                      <Globe className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-extrabold text-slate-800 text-sm">All 4 Languages</h3>
-                    <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                      English, Malayalam (മലയാളം), Hindi (हिन्दी), and Arabic (العربية) enabled across all customer touchpoints.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
-                    <CheckCircle className="w-3.5 h-3.5" /> All languages active
-                  </div>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold mb-3">
-                      <QrCode className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-extrabold text-slate-800 text-sm">QR Poster Designer</h3>
-                    <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                      Print-ready table stands, reception posters, counter stickers, and wall banners in A4 and A5 sizes.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
-                    <CheckCircle className="w-3.5 h-3.5" /> High-res vector exports
-                  </div>
-                </div>
-              </div>
-
-              {/* Status details card */}
-              <div className="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Star className="w-5 h-5 fill-current" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-800 text-sm">Workspace Status: Enterprise Active</h4>
-                    <p className="text-slate-400 text-xs mt-0.5">Workspace ID: {organization.id} • Slug: {organization.slug}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200">
-                    Lifetime Full Access
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
         </div>
       </main>
